@@ -34,10 +34,10 @@ endpoint_t pio_usb_ep_pool[PIO_USB_EP_POOL_CNT];
 // Bus functions
 //--------------------------------------------------------------------+
 
-static void __no_inline_not_in_flash_func(send_pre)(const pio_port_t *pp) {
+void __no_inline_not_in_flash_func(pio_usb_bus_send_pre)(const pio_port_t *pp) {
   uint8_t data[] = {USB_SYNC, USB_PID_PRE};
 
-  // send PRE token in full-speed
+  // send PRE token in full-speed (tells hub to enable low-speed port for next transaction)
   pio_sm_set_enabled(pp->pio_usb_tx, pp->sm_tx, false);
   for (uint i = 0; i < USB_TX_EOP_DISABLER_LEN; ++i) {
     uint16_t instr = pp->fs_tx_pre_program->instructions[i + USB_TX_EOP_OFFSET];
@@ -75,7 +75,7 @@ static void __no_inline_not_in_flash_func(send_pre)(const pio_port_t *pp) {
 void __not_in_flash_func(pio_usb_bus_usb_transfer)(const pio_port_t *pp,
                                               uint8_t *data, uint16_t len) {
   if (pp->need_pre) {
-    send_pre(pp);
+    pio_usb_bus_send_pre(pp);
   }
 
   dma_channel_transfer_from_buffer_now(pp->tx_ch, data, len);

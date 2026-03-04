@@ -490,6 +490,9 @@ static int __no_inline_not_in_flash_func(usb_in_transaction)(pio_port_t *pp,
   uint8_t expect_pid = (ep->data_id == 1) ? USB_PID_DATA1 : USB_PID_DATA0;
 
   pio_usb_bus_prepare_receive(pp);
+  if (ep->need_pre) {
+    pio_usb_bus_send_pre(pp);
+  }
   pio_usb_bus_send_token(pp, USB_PID_IN, ep->dev_addr, ep->ep_num);
   pio_usb_bus_start_receive(pp);
 
@@ -529,6 +532,9 @@ static int __no_inline_not_in_flash_func(usb_out_transaction)(pio_port_t *pp,
   uint16_t const xact_len = pio_usb_ll_get_transaction_len(ep);
 
   pio_usb_bus_prepare_receive(pp);
+  if (ep->need_pre) {
+    pio_usb_bus_send_pre(pp);
+  }
   pio_usb_bus_send_token(pp, USB_PID_OUT, ep->dev_addr, ep->ep_num);
   // ensure previous tx complete
   while ((pp->pio_usb_tx->irq & IRQ_TX_COMP_MASK) == 0) {
@@ -564,18 +570,27 @@ static int __no_inline_not_in_flash_func(usb_setup_transaction)(
 
   int res = 0;
 
-  // Setup token
+  // Setup token (PRE first for low-speed devices behind hub)
   pio_usb_bus_prepare_receive(pp);
 
+  if (ep->need_pre) {
+    pio_usb_bus_send_pre(pp);
+  }
   pio_usb_bus_send_token(pp, USB_PID_SETUP, ep->dev_addr, 0);
   // ensure previous tx complete
   while ((pp->pio_usb_tx->irq & IRQ_TX_COMP_MASK) == 0) {
     continue;
   }
 
-  // Data
+  // Data (PRE already sent before token for low-speed, skip second PRE)
   ep->data_id = 0; // set to DATA0
+  if (ep->need_pre) {
+    pp->need_pre = false;  // avoid double PRE in same transaction
+  }
   pio_usb_bus_usb_transfer(pp, ep->buffer, 12);
+  if (ep->need_pre) {
+    pp->need_pre = true;
+  }
 
   // Handshake
   pio_usb_bus_start_receive(pp);

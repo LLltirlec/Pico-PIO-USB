@@ -127,6 +127,7 @@ void pio_usb_bus_usb_transfer(const pio_port_t *pp, uint8_t *data,
 
 uint8_t pio_usb_bus_wait_handshake(pio_port_t *pp);
 void pio_usb_bus_send_handshake(const pio_port_t *pp, uint8_t pid);
+void pio_usb_bus_send_pre(const pio_port_t *pp);
 void pio_usb_bus_send_token(const pio_port_t *pp, uint8_t token, uint8_t addr,
                             uint8_t ep_num);
 
