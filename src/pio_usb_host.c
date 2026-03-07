@@ -319,16 +319,22 @@ void __not_in_flash_func(pio_usb_host_frame)(void) {
     }
   }
 
-  // check for new connection to root hub
+  // check for new connection to root hub (debounce: require 2 consecutive IDLE frames for slow/hub detection)
+  static uint8_t root_connect_debounce[PIO_USB_ROOT_PORT_CNT];
   for (int root_idx = 0; root_idx < PIO_USB_ROOT_PORT_CNT; root_idx++) {
     root_port_t *root = PIO_USB_ROOT_PORT(root_idx);
     if (root->initialized && !root->connected) {
       port_pin_status_t const line_state = pio_usb_bus_get_line_state(root);
       if (line_state == PORT_PIN_FS_IDLE || line_state == PORT_PIN_LS_IDLE) {
-        root->is_fullspeed = (line_state == PORT_PIN_FS_IDLE);
-        root->connected = true;
-        root->suspended = true; // need a bus reset before operating
-        root->ints |= PIO_USB_INTS_CONNECT_BITS;
+        if (++root_connect_debounce[root_idx] >= 2) {
+          root_connect_debounce[root_idx] = 0;
+          root->is_fullspeed = (line_state == PORT_PIN_FS_IDLE);
+          root->connected = true;
+          root->suspended = true; // need a bus reset before operating
+          root->ints |= PIO_USB_INTS_CONNECT_BITS;
+        }
+      } else {
+        root_connect_debounce[root_idx] = 0;
       }
     }
   }
