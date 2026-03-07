@@ -326,7 +326,7 @@ void __not_in_flash_func(pio_usb_host_frame)(void) {
     if (root->initialized && !root->connected) {
       port_pin_status_t const line_state = pio_usb_bus_get_line_state(root);
       if (line_state == PORT_PIN_FS_IDLE || line_state == PORT_PIN_LS_IDLE) {
-        if (++root_connect_debounce[root_idx] >= 2) {
+        if (++root_connect_debounce[root_idx] >= 5) {
           root_connect_debounce[root_idx] = 0;
           root->is_fullspeed = (line_state == PORT_PIN_FS_IDLE);
           root->connected = true;
@@ -1385,6 +1385,14 @@ void set_interval_override(uint8_t interval)
 uint8_t get_interval_override()
 {
   return interval_override;
+}
+
+int pio_usb_host_get_root_line_state(uint8_t root_idx)
+{
+  if (root_idx >= PIO_USB_ROOT_PORT_CNT) return -1;
+  root_port_t *root = PIO_USB_ROOT_PORT(root_idx);
+  if (!root->initialized) return -1;
+  return (int)pio_usb_bus_get_line_state(root);
 }
 
 #pragma GCC pop_options
