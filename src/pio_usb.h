@@ -32,6 +32,9 @@ int pio_usb_set_out_data(endpoint_t *ep, const uint8_t *buffer, uint8_t len);
 void set_interval_override(uint8_t interval);
 uint8_t get_interval_override();
 
+// Debug: current root port line state when host is idle (0=SE0, 1=FS_IDLE, 2=LS_IDLE, 3=SE1). -1 if invalid.
+int pio_usb_host_get_root_line_state(uint8_t root_idx);
+
 #ifdef __cplusplus
  }
 #endif
